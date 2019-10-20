@@ -1,8 +1,8 @@
 #ifndef __YM_GURL_UI_DISPLAY
 #define __YM_GURL_UI_DISPLAY
 
-#define UI_DISPLAY_U8G2_INIT  u8g2_Setup_uc1611_ea_dogxl240_f
-#define UI_DISPLAY_U8G2_COMM  u8x8_byte_4wire_sw_spi
+#define UI_DISPLAY_U8G2_INIT  u8g2_Setup_st7920_s_128x64_f /*u8g2_Setup_uc1611_ea_dogxl240_f*/
+#define UI_DISPLAY_U8G2_COMM  u8x8_byte_4wire_sw_spi /*u8x8_byte_4wire_sw_spi*/
 #define UI_DISPLAY_U8G2_ROT   U8G2_R0
 
 #define UI_DISPLAY_MAX_SCREENS      16
@@ -40,7 +40,6 @@ namespace ui {
             /* The message pool */
             MemoryPool<screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> m_screenEventPool;
             
-
             /* The display data */
             u8g2_t m_display;
             /* The registered screens */
