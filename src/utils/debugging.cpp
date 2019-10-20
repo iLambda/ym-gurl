@@ -1,7 +1,7 @@
 #include "debugging.h"
 
 mbed::Serial* dbg::serial = new mbed::Serial(USBTX, USBRX);
-mbed::DigitalOut* dbg::led = new DigitalOut(LED1, 0);
+mbed::BusOut* dbg::leds = new BusOut(LED1, LED2, LED3);
 
 void dbg::printf(const char* format, ...) {
     /* Send to pc */
