@@ -30,6 +30,9 @@ void ui::Display::run(){
     /* Wake up the display */
     u8g2_SetPowerSave(&Display::m_display, 0);
 
+    /* Set priorities */
+    Display::m_threadUi.set_priority(UI_DISPLAY_THREAD_PRIORITY_UI);
+    Display::m_threadEvent.set_priority(UI_DISPLAY_THREAD_PRIORITY_EVENT);
     /* Start the UI and event threads */
     Display::m_threadUi.start(callback(&Display::uiThread));
     Display::m_threadEvent.start(callback(&Display::eventThread));
