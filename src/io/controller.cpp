@@ -2,6 +2,7 @@
 
 Thread io::Controller::m_threadInput;
 io::inputstate_t io::Controller::m_state = {0};
+utils::Event<io::batterystate_t> io::Controller::m_eventBatteryChange;
 
 void io::Controller::run() {
     /* Set priority */
@@ -15,9 +16,9 @@ io::inputstate_t io::Controller::get() {
     return Controller::m_state;
 }
 
-void io::Controller::onBatteryChange(Callback<void(batterystate_t)> callback) {
+const utils::Event<io::batterystate_t>& io::Controller::batteryChange() {
     /* Save */
-    Controller::m_onBatteryChange = callback;
+    return Controller::m_eventBatteryChange;
     
 }
 
@@ -66,10 +67,8 @@ void io::Controller::inputThread() {
             ThisThread::flags_clear(IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR);
             /* Read battery */
             Controller::readBattery();
-            /* If callback */
-            if (Controller::m_onBatteryChange) {
-                Controller::m_onBatteryChange(Controller::m_state.battery);
-            }
+            /* Fire */
+            Controller::m_eventBatteryChange.fire(Controller::m_state.battery);
         }
         /* Wait */
         wait_ms(IO_CONTROLLER_REFRESH_INPUT_RATE);
