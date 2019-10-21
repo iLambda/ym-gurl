@@ -1,16 +1,23 @@
 #include "display.h"
 #include "utils/utils.h"
 
-ui::Display::Display(){
-    
+Thread ui::Display::m_threadUi;
+Thread ui::Display::m_threadEvent;
+Queue<ui::Display::screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> ui::Display::m_screenQueue;
+MemoryPool<ui::Display::screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> ui::Display::m_screenEventPool;
+u8g2_t ui::Display::m_display = {0};
+ui::screen_t ui::Display::m_screens[UI_DISPLAY_MAX_SCREENS] = {0};
+int8_t ui::Display::m_currentScreen = -1;
+
+void ui::Display::run(){ 
     /* Initialize screens */
-    memset(this->m_screens, 0, utils::size(this->m_screens) * sizeof(screen_t));
-    this->m_currentScreen = -1;
+    memset(Display::m_screens, 0, utils::size(Display::m_screens) * sizeof(screen_t));
+    Display::m_currentScreen = -1;
 
     /* Initialize u8g2 */
     UI_DISPLAY_U8G2_INIT(
         /* The display data */
-        &this->m_display,
+        &Display::m_display,
         /* The rotation procedure */
         UI_DISPLAY_U8G2_ROT,
         /* The communication mode */
@@ -19,60 +26,60 @@ ui::Display::Display(){
         &u8x8_gpio_and_delay_mbed);
         
     /* Initialize display */
-    u8g2_InitDisplay(&this->m_display);
+    u8g2_InitDisplay(&Display::m_display);
     /* Wake up the display */
-    u8g2_SetPowerSave(&this->m_display, 0);
+    u8g2_SetPowerSave(&Display::m_display, 0);
 
     /* Start the UI and event threads */
-    this->m_threadUi.start(callback(this, &Display::uiThread));
-    this->m_threadEvent.start(callback(this, &Display::eventThread));
+    Display::m_threadUi.start(callback(&Display::uiThread));
+    Display::m_threadEvent.start(callback(&Display::eventThread));
 }
 
 bool ui::Display::add(uint8_t id, const screen_t &screen) {
     /* If exists, couldn't add. Return false */
-    if (this->m_screens[id].render) {
+    if (Display::m_screens[id].render) {
         return false;
     }
     /* Add it */
-    this->m_screens[id] = screen;
+    Display::m_screens[id] = screen;
     /* Return */
     return true;
 }
 
 bool ui::Display::get(uint8_t id, screen_t &screen) {
     /* If not exists, couldn't get. Return false */
-    if (!this->m_screens[id].render) {
+    if (!Display::m_screens[id].render) {
         return false;
     }
     /* Return it */
-    screen = this->m_screens[id];
+    screen = Display::m_screens[id];
     /* Return */
     return true;
 }
 
 bool ui::Display::go(uint8_t id) {
     /* If not exists, couldn't get. Return false */
-    if (!this->m_screens[id].render) { return false; }
+    if (!Display::m_screens[id].render) { return false; }
     /* Allocate a message */
-    screenevent_t *message = this->m_screenEventPool.alloc();
+    screenevent_t *message = Display::m_screenEventPool.alloc();
     /* Check if message could be allocated */
     if (message == nullptr) { return false; }
     /* Fill it and send it */
     message->id = id;
-    message->screen = &this->m_screens[id];
-    this->m_screenQueue.put(message);
+    message->screen = &Display::m_screens[id];
+    Display::m_screenQueue.put(message);
     /* Return */
     return true;
 }
 
 int8_t ui::Display::current() {
     /* Return the current display */
-    return this->m_currentScreen;
+    return Display::m_currentScreen;
 }
 
 void ui::Display::dirty() {
     /* Send */
-    this->m_threadUi.flags_set(UI_DISPLAY_THREAD_FLAG_UI_DIRTY);
+    Display::m_threadUi.flags_set(UI_DISPLAY_THREAD_FLAG_UI_DIRTY);
 }
 
 void ui::Display::drawFrame() {
@@ -81,29 +88,29 @@ void ui::Display::drawFrame() {
 
 void ui::Display::repaint() {
     /* Check if id fine */
-    if (this->m_currentScreen < 0) { return; }
+    if (Display::m_currentScreen < 0) { return; }
     /* Get screen */
-    screen_t &screen = this->m_screens[this->m_currentScreen];
+    screen_t &screen = Display::m_screens[Display::m_currentScreen];
     /* Check if current screen is fine */
     if (!screen.render) { return; }
     /* Clear */
-    u8g2_ClearBuffer(&this->m_display);
+    u8g2_ClearBuffer(&Display::m_display);
     /* Check if need to draw frame */
     if (screen.framed) {
         /* Draw */
-        this->drawFrame();
+        Display::drawFrame();
         /* Restrict frame draw */
         /* TODO */
-        // u8g2_SetClipWindow(&this->m_display, );
+        // u8g2_SetClipWindow(&Display::m_display, );
     }
     else {
         /* Reset frame draw restriction */
-        u8g2_SetMaxClipWindow(&this->m_display);
+        u8g2_SetMaxClipWindow(&Display::m_display);
     }
     /* Draw */
-    screen.render(screen.state, &this->m_display);
+    screen.render(screen.state, &Display::m_display);
     /* Send buffer */
-    u8g2_SendBuffer(&this->m_display);
+    u8g2_SendBuffer(&Display::m_display);
 }
 
 void ui::Display::uiThread() {
@@ -114,7 +121,7 @@ void ui::Display::uiThread() {
         /* Repaint */
         repaint();
         /* Send redraw ok */
-        this->m_threadEvent.flags_set(UI_DISPLAY_THREAD_FLAG_EVENT_DRAWN);
+        Display::m_threadEvent.flags_set(UI_DISPLAY_THREAD_FLAG_EVENT_DRAWN);
     }
 }
 
@@ -127,33 +134,33 @@ void ui::Display::eventThread()
         /* Reset dirty flag */
         dirty = false;
         /* Check if screen exists */
-        if (this->m_currentScreen >= 0 && this->m_screens[this->m_currentScreen].update) {
+        if (Display::m_currentScreen >= 0 && Display::m_screens[Display::m_currentScreen].update) {
             /* Get screen */
-            screen_t &screen = this->m_screens[this->m_currentScreen];
+            screen_t &screen = Display::m_screens[Display::m_currentScreen];
             /* Do update */
             screen.update(screen.state, &dirty);
             /* Check dirty flag */
             if (dirty) {
                 /* Set as dirty, but don't wait for drawn flag */
-                this->dirty();
+                Display::dirty();
             }
         }
         /* Check queue */
-        auto result = this->m_screenQueue.get(UI_DISPLAY_REFRESH_UI_RATE);
+        auto result = Display::m_screenQueue.get(UI_DISPLAY_REFRESH_UI_RATE);
         /* If anything was found */
         if (result.status == osEventMessage) {
             /* Get message */
             screenevent_t *event = (screenevent_t *)result.value.p;
             /* Check if screen we want to go to is different */
-            if (event->id != this->m_currentScreen) {
+            if (event->id != Display::m_currentScreen) {
                 /* Set current id */
-                this->m_currentScreen = event->id;
+                Display::m_currentScreen = event->id;
                 /* Free the event */
-                this->m_screenEventPool.free(event);
+                Display::m_screenEventPool.free(event);
                 /* Clear flags in case */
                 ThisThread::flags_clear(UI_DISPLAY_THREAD_FLAG_EVENT_DRAWN);
                 /* Set as dirty */
-                this->dirty();
+                Display::dirty();
                 /* Wait for drawn flag */
                 ThisThread::flags_wait_all(UI_DISPLAY_THREAD_FLAG_EVENT_DRAWN);
             }

@@ -22,7 +22,7 @@ namespace ui {
 
     class Display {
 
-        private:
+        public:
             struct screenevent_t {
                 /* A pointer to the screen */
                 screen_t* screen;
@@ -32,47 +32,50 @@ namespace ui {
 
         private:
             /* The UI thread */
-            Thread m_threadUi;
+            static Thread m_threadUi;
             /* The event thread */
-            Thread m_threadEvent;
+            static Thread m_threadEvent;
             /* The screen queue */
-            Queue<screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> m_screenQueue;
+            static Queue<screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> m_screenQueue;
             /* The message pool */
-            MemoryPool<screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> m_screenEventPool;
+            static MemoryPool<screenevent_t, UI_DISPLAY_THREAD_QUEUE_SIZE> m_screenEventPool;
             
             /* The display data */
-            u8g2_t m_display;
+            static u8g2_t m_display;
             /* The registered screens */
-            screen_t m_screens[UI_DISPLAY_MAX_SCREENS];
+            static screen_t m_screens[UI_DISPLAY_MAX_SCREENS];
             /* The current screen id */
-            int8_t m_currentScreen;
+            static int8_t m_currentScreen;
 
-        public:
+        private:
             /* Create a display */
-            Display();
+            Display() {}
 
         public:
+            /* Run the display */
+            static void run();
+
             /* Add a new screen */
-            bool add(uint8_t id, const screen_t& screen);
+            static bool add(uint8_t id, const screen_t& screen);
             /* Get the screen */
-            bool get(uint8_t id, screen_t& screen);
+            static bool get(uint8_t id, screen_t& screen);
             /* Go to screen */
-            bool go(uint8_t id);
+            static bool go(uint8_t id);
             /* The current screen id */
-            int8_t current();
+            static int8_t current();
 
         private:
             /* Repaint */
-            void repaint();
+            static void repaint();
             /* Dirty */
-            void dirty();
+            static void dirty();
             /* Draw the frame */
-            void drawFrame();
+            static void drawFrame();
 
             /* The UI thread */
-            void uiThread();
+            static void uiThread();
             /* The event thread */
-            void eventThread();
+            static void eventThread();
 
     };
 
