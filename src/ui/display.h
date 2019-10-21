@@ -1,8 +1,8 @@
 #ifndef __YM_GURL_UI_DISPLAY
 #define __YM_GURL_UI_DISPLAY
 
-#define UI_DISPLAY_U8G2_INIT  u8g2_Setup_st7920_s_128x64_f /*u8g2_Setup_uc1611_ea_dogxl240_f*/
-#define UI_DISPLAY_U8G2_COMM  u8x8_byte_4wire_sw_spi /*u8x8_byte_4wire_sw_spi*/
+#define UI_DISPLAY_U8G2_INIT  u8g2_Setup_st7920_s_128x64_f /* u8g2_Setup_uc1611_ea_dogxl240_f */
+#define UI_DISPLAY_U8G2_COMM  u8x8_byte_4wire_sw_spi /* u8x8_byte_hw_spi_mbed */
 #define UI_DISPLAY_U8G2_ROT   U8G2_R0
 
 #define UI_DISPLAY_MAX_SCREENS      16
@@ -74,10 +74,13 @@ namespace ui {
             /* The event thread */
             void eventThread();
 
-            /* The u8glib gpio and delay procedure */
-            static uint8_t u8x8_gpio_and_delay_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
     };
 
 };
+
+/* The u8glib gpio and delay procedure */
+extern "C" uint8_t u8x8_gpio_and_delay_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
+/* The u8glib spi hardware procedure */
+extern "C" uint8_t u8x8_byte_hw_spi_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
 
 #endif

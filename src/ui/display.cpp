@@ -16,7 +16,7 @@ ui::Display::Display(){
         /* The communication mode */
         UI_DISPLAY_U8G2_COMM,
         /* The uC specific procedure */
-        &Display::u8x8_gpio_and_delay_mbed);
+        &u8x8_gpio_and_delay_mbed);
         
     /* Initialize display */
     u8g2_InitDisplay(&this->m_display);
@@ -161,8 +161,70 @@ void ui::Display::eventThread()
     }
 }
 
+/* The u8glib spi hardware procedure */
+uint8_t u8x8_byte_hw_spi_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
+    /* Internal data */
+    static DigitalOut dc(NC);
+    static SPI spi(NC, NC, NC);
+    /* Temporary variables */
+    uint8_t *data;
+    /* Checkup on message */
+    switch (msg) {
+        /* Send one or more bytes, located at arg_ptr, arg_int contains the number of bytes. */
+        case U8X8_MSG_BYTE_SEND:
+            data = (uint8_t *)arg_ptr;
+            while (arg_int > 0) {
+                spi.write((uint8_t)*data);
+                data++;
+                arg_int--;
+            }
+            break;
+
+        /* Send once during the init phase of the display */
+        case U8X8_MSG_BYTE_INIT:
+            /* Disable CS */
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_disable_level);
+            /* Set good polarity (TODO : check)*/
+            spi.format(8, u8x8->display_info->spi_mode);
+            /* Set good frequency and begin */
+            spi.frequency(/* TODO */);
+            break;
+
+        /* Set the level of the data/command pin. 
+           arg_int contains the expected output level. */
+        case U8X8_MSG_BYTE_SET_DC:
+            /* Set the DC level */
+            u8x8_gpio_SetDC(u8x8, arg_int);
+            break;
+        
+        /* Set the chip select line here. 
+           u8x8->display_info->chip_enable_level contains the expected level. 
+           Use u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_enable_level) 
+           to call the GPIO procedure.*/
+        case U8X8_MSG_BYTE_START_TRANSFER:
+            /* Raise CS and wait */
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_enable_level);
+            u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, u8x8->display_info->post_chip_enable_wait_ns, NULL);
+            break;
+
+        /* Unselect the device. 
+           Use the CS level from here: 
+           u8x8->display_info->chip_disable_level. */
+        case U8X8_MSG_BYTE_END_TRANSFER:
+            /* Wait */
+            u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, u8x8->display_info->pre_chip_disable_wait_ns, NULL);
+            /* Unselect */
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_disable_level);
+            break;
+        default:
+            return 0;
+    }
+    return 1;
+}
+
+
 /* The u8glib gpio and delay procedure */
-uint8_t ui::Display::u8x8_gpio_and_delay_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
+uint8_t u8x8_gpio_and_delay_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
     /* State */
     static DigitalOut m_cs(A2);
     static DigitalOut m_mosi(A1);
