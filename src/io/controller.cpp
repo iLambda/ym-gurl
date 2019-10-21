@@ -29,7 +29,18 @@ void io::Controller::isrBattery() {
     Controller::m_threadInput.flags_set(IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR);   
 }
 
-void io::Controller::read() {   
+void io::Controller::read() {
+    /* Peripherals for the shift register */
+    static DigitalIn ser(NC);
+    static DigitalOut clk(NC, 1);
+    static DigitalOut srclk(NC, 1);
+    /* Analog input for potententiometer */
+    AnalogIn vol(NC);
+
+    /* Read volume level : 12-bit reading divided by 16.
+       Should account for slight stationary variations */
+    Controller::m_state.volume = vol.read_u16() << (12 - 8);
+    /* Read shift register */
     /* TODO */
 }
 
