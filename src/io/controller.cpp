@@ -30,22 +30,44 @@ void io::Controller::isrBattery() {
     Controller::m_threadInput.flags_set(IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR);   
 }
 
-void io::Controller::read() {
-    /* Peripherals for the shift register */
-    static DigitalIn ser(NC);
-    static DigitalOut clk(NC, 1);
-    static DigitalOut srclk(NC, 1);
+void io::Controller::updateBattery() {
+    /* The I2C controller for battery */
+    static I2C batteryBus(NC, NC);
+    /* TODO */
+}
+
+void io::Controller::updateVolume() {
     /* Analog input for potententiometer */
     AnalogIn vol(NC);
 
     /* Read volume level : 12-bit reading divided by 16.
        Should account for slight stationary variations */
-    Controller::m_state.volume = vol.read_u16() << (12 - 8);
-    /* Read shift register */
-    /* TODO */
+    uint8_t volume = vol.read_u16() << (12 - 8);
+    bool volumeChange = volume != Controller::m_state.volume;
+    Controller::m_state.volume = volume;
+    /* Request volume write if change */
+    if (volumeChange) { 
+        /* 
+            This part of the routine must be 'atomic'.    
+            Lock as critical the following code.
+            !!! MUST BE SHORT    
+        */
+        CriticalSectionLock lock;
+        /* TODO */
+    }
 }
 
-void io::Controller::readBattery() {
+void io::Controller::updateInputs() {
+    /* Peripherals for the shift register */
+    static DigitalIn ser(NC);
+    static DigitalOut clk(NC, 1);
+    static DigitalOut srclk(NC, 1);
+    /* 
+        This routine must be 'atomic'.    
+        Lock as critical the following code.
+        !!! MUST BE SHORT    
+    */
+    CriticalSectionLock lock;
     /* TODO */
 }
 
@@ -59,14 +81,17 @@ void io::Controller::inputThread() {
 
     /* Thread loop */
     while(1) {
-        /* Read all */
-        read();
+        /* Update volume */
+        updateVolume();
+        /* Update inputs */
+        updateInputs();
+
         /* Check if battery flag set */
         if (ThisThread::flags_get() & IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR) {
             /* Clear flags */
             ThisThread::flags_clear(IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR);
             /* Read battery */
-            Controller::readBattery();
+            Controller::updateBattery();
             /* Fire */
             Controller::m_eventBatteryChange.fire(Controller::m_state.battery);
         }

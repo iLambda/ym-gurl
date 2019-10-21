@@ -1,7 +1,7 @@
 #ifndef __YM_GURL_INPUT_CONTROLLER
 #define __YM_GURL_INPUT_CONTROLLER
 
-#define IO_CONTROLLER_REFRESH_INPUT_RATE         5
+#define IO_CONTROLLER_REFRESH_INPUT_RATE         1
 
 #define IO_CONTROLLER_THREAD_PRIORITY_INPUT      osPriorityNormal
 #define IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR    0x01
@@ -29,7 +29,7 @@ namespace io {
             Controller() {}
 
         public:
-            /* Battery change event. The callback is run in input thread context */
+            /* Battery change event. The callbacks are run in input thread context */
             static const utils::Event<batterystate_t>& batteryChange();
 
         public:
@@ -39,12 +39,15 @@ namespace io {
             static inputstate_t get();
             
         private:
-            /* Read input */    
-            static void read();
-            /* Read battery levels */
-            static void readBattery();
             /* Battery read interrupt */
             static void isrBattery();
+            
+            /* Update battery levels */
+            __STATIC_FORCEINLINE void updateBattery();
+            /* Update volume */
+            __STATIC_FORCEINLINE void updateVolume();
+            /* Update inputs */
+            __STATIC_FORCEINLINE void updateInputs();
 
             /* The input thread */
             static void inputThread();
