@@ -1,5 +1,5 @@
-#ifndef __YM_GURL_AUDIO_YM2612
-#define __YM_GURL_AUDIO_YM2612
+#ifndef __YM_GURL_AUDIO_SOUNDCHIP
+#define __YM_GURL_AUDIO_SOUNDCHIP
 
 #define AUDIO_BUFFER_SIZE_LOG       7
 #define AUDIO_BUFFER_SIZE_MASK      127
@@ -14,12 +14,12 @@
 #include <mbed.h>
 #include <stm32f7xx_hal_tim.h>
 
-#include "ym2612reg.h"
-#include "ym2612cmd.h"
+#include "audio/devices/ym2612.h"
+#include "audio/command.h"
 
 namespace audio {
 
-    class YM2612 {
+    class Soundchip {
 
         private:
             /* The data bus */
@@ -31,20 +31,20 @@ namespace audio {
 
             /* The timer */
             static TIM_HandleTypeDef m_TIMhandle;
-            /* The command buffer */
+            /* The ym2612 command buffer */
             static CircularBuffer<ym2612cmd_t, AUDIO_BUFFER_SIZE> m_buffer;
             /* Are we playing ? */
             static bool m_playing;
 
         private:
-            YM2612() {}
+            Soundchip() {}
 
         public:
-            /* Initialize */
-            static void initialize(ym2612pinmap_t pinmap);
+            /* Run */
+            static void run(ym2612_t chip);
 
             /* Return true iff audio engine is playing */
-            static bool isPlaying() { return YM2612::m_playing; }
+            static bool isPlaying() { return Soundchip::m_playing; }
             /* Play */
             static void start();
             /* Stop */
@@ -54,28 +54,27 @@ namespace audio {
             /* Attach IRQ */
             __STATIC_FORCEINLINE void attachIRQ() {
                 /* Setup TIM11 */
-                YM2612::m_TIMhandle.Instance = AUDIO_IRQ_TIMER;
-                YM2612::m_TIMhandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+                Soundchip::m_TIMhandle.Instance = AUDIO_IRQ_TIMER;
+                Soundchip::m_TIMhandle.Init.CounterMode = TIM_COUNTERMODE_UP;
                 /* (TIM_CLOCK = 80 MHz / (Prescaler + 1)) / (Period +1) */
-                YM2612::m_TIMhandle.Init.Prescaler = 7;
-                YM2612::m_TIMhandle.Init.Period = 0;
+                Soundchip::m_TIMhandle.Init.Prescaler = 7;
+                Soundchip::m_TIMhandle.Init.Period = 0;
 
                 /* Enter critical section */
-                core_util_critical_section_enter();
                 {
+                    /* Lock */
+                    CriticalSectionLock lock;
                     /* Enable TIM11 clock */
                     AUDIO_IRQ_CLK_ENABLE();
                     /* Init timer */
-                    HAL_TIM_Base_Init(&YM2612::m_TIMhandle);     // Init timer
+                    HAL_TIM_Base_Init(&Soundchip::m_TIMhandle);     // Init timer
                     /* Start interrupts */
-                    HAL_TIM_Base_Start_IT(&YM2612::m_TIMhandle); // start timer interrupts
+                    HAL_TIM_Base_Start_IT(&Soundchip::m_TIMhandle); // start timer interrupts
                     /* Set priority (Highest) */
                     HAL_NVIC_SetPriority(AUDIO_IRQ, 0, 0);
                     /* Enable IRQ */
                     HAL_NVIC_EnableIRQ(AUDIO_IRQ);
                 }
-                /* Exit critical */
-                core_util_critical_section_exit();
             }
             /* Detach IRQ */
             __STATIC_FORCEINLINE void detachIRQ() {
@@ -86,7 +85,7 @@ namespace audio {
             /* Next */
             __STATIC_FORCEINLINE void next(ym2612cmd_t& out) {
                 /* Pop and return only if buffer was full enough */
-                YM2612::m_buffer.pop(out);
+                Soundchip::m_buffer.pop(out);
             }
 
     };

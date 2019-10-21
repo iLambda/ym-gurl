@@ -1,4 +1,5 @@
 #include <mbed.h>
+#include <io/controller.h>
 #include <ui/display.h>
 #include <ui/screens/bootscreen.h>
 #include <utils/debugging.h>
@@ -13,7 +14,7 @@ int main() {
   dbg::setLEDs(0x01);
 
   /* Initialize controller */
-  
+  io::Controller::run();
 
   /* Initialize display */
   ui::Display::add(bootScreen.getID(), bootScreen.get());

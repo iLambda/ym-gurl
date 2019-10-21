@@ -1,5 +1,7 @@
-#ifndef __YM_GURL_AUDIO_YM2612REG
-#define __YM_GURL_AUDIO_YM2612REG
+#ifndef __YM_GURL_AUDIO_DEVICE_YM2612
+#define __YM_GURL_AUDIO_DEVICE_YM2612
+
+#include <mbed.h>
 
 /*
  *  REGISTERS & COMMANDS
@@ -376,4 +378,20 @@
 #define YM2612_FMS_400          0x06
 #define YM2612_FMS_800          0x07
 
+
+/* A structure representing a ym2612 pin map */
+struct ym2612_t {
+    PinName dataBus[8];
+    PinName commandBus[5];
+    PinName clockPin;
+};
+
+/* A structure representing a ym2612 command */
+struct ym2612cmd_t {
+    uint8_t address;
+    uint8_t part;
+    uint8_t data;
+};
+
 #endif
+
