@@ -46,8 +46,8 @@ namespace io {
             __STATIC_FORCEINLINE void updateBattery();
             /* Update volume */
             __STATIC_FORCEINLINE void updateVolume();
-            /* Update inputs */
-            __STATIC_FORCEINLINE void updateInputs();
+            /* Update buttons */
+            __STATIC_FORCEINLINE void updateButtons();
 
             /* The input thread */
             static void inputThread();

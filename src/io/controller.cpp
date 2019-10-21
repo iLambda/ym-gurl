@@ -17,7 +17,7 @@ io::inputstate_t io::Controller::get() {
 }
 
 const utils::Event<io::batterystate_t>& io::Controller::batteryChange() {
-    /* Save */
+    /* Return event as constant reference to forbid firing */
     return Controller::m_eventBatteryChange;
     
 }
@@ -33,13 +33,12 @@ void io::Controller::isrBattery() {
 void io::Controller::updateBattery() {
     /* The I2C controller for battery */
     static I2C batteryBus(NC, NC);
-    /* TODO */
+    /* TODO : read the battery state */
 }
 
 void io::Controller::updateVolume() {
     /* Analog input for potententiometer */
     AnalogIn vol(NC);
-
     /* Read volume level : 12-bit reading divided by 16.
        Should account for slight stationary variations */
     uint8_t volume = vol.read_u16() << (12 - 8);
@@ -53,11 +52,11 @@ void io::Controller::updateVolume() {
             !!! MUST BE SHORT    
         */
         CriticalSectionLock lock;
-        /* TODO */
+        /* TODO : write to the potentiometer */
     }
 }
 
-void io::Controller::updateInputs() {
+void io::Controller::updateButtons() {
     /* Peripherals for the shift register */
     static DigitalIn ser(NC);
     static DigitalOut clk(NC, 1);
@@ -68,7 +67,7 @@ void io::Controller::updateInputs() {
         !!! MUST BE SHORT    
     */
     CriticalSectionLock lock;
-    /* TODO */
+    /* TODO read shift register */
 }
 
 void io::Controller::inputThread() {
@@ -83,8 +82,8 @@ void io::Controller::inputThread() {
     while(1) {
         /* Update volume */
         updateVolume();
-        /* Update inputs */
-        updateInputs();
+        /* Update buttons */
+        updateButtons();
 
         /* Check if battery flag set */
         if (ThisThread::flags_get() & IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR) {
