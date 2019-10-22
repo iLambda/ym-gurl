@@ -7,8 +7,10 @@ utils::Event<io::batterystate_t> io::Controller::m_eventBatteryChange;
 void io::Controller::run() {
     /* Set priority */
     Controller::m_threadInput.set_priority(IO_CONTROLLER_THREAD_PRIORITY_INPUT);
+    Controller::m_threadMidi.set_priority(IO_CONTROLLER_THREAD_PRIORITY_MIDI);
     /* Start the UI and event threads */
     Controller::m_threadInput.start(callback(&Controller::inputThread));
+    Controller::m_threadMidi.start(callback(&Controller::midiThread));
 }
 
 io::inputstate_t io::Controller::get() {
@@ -16,18 +18,23 @@ io::inputstate_t io::Controller::get() {
     return Controller::m_state;
 }
 
-const utils::Event<io::batterystate_t>& io::Controller::batteryChange() {
-    /* Return event as constant reference to forbid firing */
-    return Controller::m_eventBatteryChange;
-    
-}
-
 void io::Controller::isrBattery() {
     /*
      *  CAREFUL !!! This is ISR context
      */
     /* Send flag into thread loop */
-    Controller::m_threadInput.flags_set(IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR);   
+    Controller::m_threadInput.flags_set(IO_CONTROLLER_THREAD_FLAG_INPUT_BATTERY);   
+}
+
+void io::Controller::isrMidi(RawSerial* self) {
+    /*
+     *  CAREFUL !!! This is ISR context
+     */
+    /* Send data into queue */
+    uint8_t* data = Controller::m_midiMail.alloc();
+    *data = self->getc();
+    /* Put in queue */
+    m_midiMail.put(data);
 }
 
 void io::Controller::updateBattery() {
@@ -70,13 +77,40 @@ void io::Controller::updateButtons() {
     /* TODO read shift register */
 }
 
-void io::Controller::inputThread() {
-    /* The state */
-    InterruptIn battery(NC);
+void io::Controller::midiThread() {
+    /* The peripheral */ 
+    RawSerial midi(NC, NC, MIDI_BAUD_RATE);
+    /* Hook the interrupts */
+    midi.attach(callback(&Controller::isrMidi, &midi));
 
+    /* Thread loop */
+    while (1) {
+        /* Read three nibbles from queue */
+        auto low = Controller::m_midiMail.get(osWaitForever);
+        auto mid = Controller::m_midiMail.get(IO_CONTROLLER_MIDI_MSG_TIMEOUT);
+        auto hi = Controller::m_midiMail.get(IO_CONTROLLER_MIDI_MSG_TIMEOUT);
+        /* Check if all are ok */
+        /* TODO : an actual implementation would be nice */
+        if (low.status == osEventMail && 
+            mid.status == osEventMail &&
+            hi.status == osEventMail) {
+            /* Make midi msg */
+            midimsg_t msg = {};
+            /* Do something, bob ! */
+            Controller::m_eventMidiReceive.fire(msg);
+        }
+        /* Free any memory */
+        if (low.status == osEventMail) { Controller::m_midiMail.free((uint8_t*)low.value.p); }
+        if (mid.status == osEventMail) { Controller::m_midiMail.free((uint8_t*)mid.value.p); }
+        if (hi.status == osEventMail) { Controller::m_midiMail.free((uint8_t*)hi.value.p); }
+    }
+}
+
+void io::Controller::inputThread() {
+    /* The peripherals */
+    InterruptIn battery(NC);
     /* Hook the interrupts */
     battery.fall(callback(&Controller::isrBattery));
-    battery.enable_irq();
 
     /* Thread loop */
     while(1) {
@@ -86,9 +120,9 @@ void io::Controller::inputThread() {
         updateButtons();
 
         /* Check if battery flag set */
-        if (ThisThread::flags_get() & IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR) {
+        if (ThisThread::flags_get() & IO_CONTROLLER_THREAD_FLAG_INPUT_BATTERY) {
             /* Clear flags */
-            ThisThread::flags_clear(IO_CONTROLLER_THREAD_FLAG_BATTERY_ISR);
+            ThisThread::flags_clear(IO_CONTROLLER_THREAD_FLAG_INPUT_BATTERY);
             /* Read battery */
             Controller::updateBattery();
             /* Fire */
