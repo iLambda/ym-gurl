@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "midi/midi.h"
 
 Thread io::Controller::m_threadInput;
 io::inputstate_t io::Controller::m_state = {0};
@@ -78,6 +79,11 @@ void io::Controller::updateButtons() {
 }
 
 void io::Controller::midiThread() {
+    /* Some data */
+    uint8_t payload[2] = {0};
+    osEvent mail;
+    midimsg_t midimessage;
+
     /* The peripheral */ 
     RawSerial midi(NC, NC, MIDI_BAUD_RATE);
     /* Hook the interrupts */
@@ -85,24 +91,32 @@ void io::Controller::midiThread() {
 
     /* Thread loop */
     while (1) {
-        /* Read three nibbles from queue */
-        auto low = Controller::m_midiMail.get(osWaitForever);
-        auto mid = Controller::m_midiMail.get(IO_CONTROLLER_MIDI_MSG_TIMEOUT);
-        auto hi = Controller::m_midiMail.get(IO_CONTROLLER_MIDI_MSG_TIMEOUT);
-        /* Check if all are ok */
-        /* TODO : an actual implementation would be nice */
-        if (low.status == osEventMail && 
-            mid.status == osEventMail &&
-            hi.status == osEventMail) {
-            /* Make midi msg */
-            midimsg_t msg = {};
-            /* Do something, bob ! */
-            Controller::m_eventMidiReceive.fire(msg);
+        /* Get the status byte  */
+        mail = Controller::m_midiMail.get(osWaitForever);
+        /* Get the status byte, and payload size. Free data */
+        uint8_t status = *((uint8_t*)mail.value.p);
+        int8_t payloadsize = midi_message_len(status) - 1;
+        Controller::m_midiMail.free((uint8_t*)mail.value.p);
+        /* Reset message, fill in status byte */
+        midimessage = {0};
+        midimessage.status.value = status;
+        /* Get as many payload bytes as needed */
+        for (size_t i = 0; i != payloadsize ; i++) {
+            /* Read mail */
+            mail = Controller::m_midiMail.get(IO_CONTROLLER_MIDI_MSG_TIMEOUT);
+            /* If nothing receive, forget this whole command 
+               and go back to waiting for a stat byte */
+            if (mail.status != osEventMail) { goto payload_fail; }
+            /* Get data and free mail */
+            payload[i] = *((uint8_t*)mail.value.p);
+            Controller::m_midiMail.free((uint8_t*)mail.value.p);
+            /* Increment */
+            i++;
         }
-        /* Free any memory */
-        if (low.status == osEventMail) { Controller::m_midiMail.free((uint8_t*)low.value.p); }
-        if (mid.status == osEventMail) { Controller::m_midiMail.free((uint8_t*)mid.value.p); }
-        if (hi.status == osEventMail) { Controller::m_midiMail.free((uint8_t*)hi.value.p); }
+        /* Yeet that message */
+        Controller::m_eventMidiReceive.fire(midimessage);
+        /* Loop break label */
+        payload_fail:;
     }
 }
 
