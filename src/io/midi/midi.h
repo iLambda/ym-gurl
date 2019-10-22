@@ -8,6 +8,11 @@
 
 namespace io {
 
+    enum midimode_t {
+        MIDI_IN,
+        MIDI_OUT
+    };
+
     enum midimsgtype_t {
         MIDI_TYPE_CC = 0xB0, 
         MIDI_TYPE_NOTEON = 0x90, 

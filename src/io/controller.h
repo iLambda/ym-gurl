@@ -23,12 +23,17 @@ namespace io {
     class Controller {
 
         private:
+            /* The midi mode */
+            static midimode_t m_midimode;
+            /* The midi serial controller */
+            static RawSerial* m_midi;
+
+            /* The state */
+            static inputstate_t m_state;
             /* The input thread */
             static Thread m_threadInput;
             /* The MIDI thread */
             static Thread m_threadMidi;
-            /* The state */
-            static inputstate_t m_state;
 
             /* The midi queue */
             static Mail<uint8_t, IO_CONTROLLER_MIDI_QUEUE_SIZE> m_midiMail;
@@ -52,6 +57,11 @@ namespace io {
             static void run();
             /* Get the state */
             static inputstate_t get();
+
+            /* Get the midi mode */
+            static midimode_t getMidiMode() { return Controller::m_midimode; }
+            /* Set the midi mode */
+            static void setMidiMode(midimode_t mode);
             
         private:
             /* Battery read interrupt */

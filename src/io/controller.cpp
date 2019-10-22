@@ -4,6 +4,8 @@
 Thread io::Controller::m_threadInput;
 io::inputstate_t io::Controller::m_state = {0};
 utils::Event<io::batterystate_t> io::Controller::m_eventBatteryChange;
+RawSerial* io::Controller::m_midi = new RawSerial(NC, NC, MIDI_BAUD_RATE);
+io::midimode_t io::Controller::m_midimode = io::midimode_t::MIDI_OUT;
 
 void io::Controller::run() {
     /* Set priority */
@@ -11,7 +13,6 @@ void io::Controller::run() {
     Controller::m_threadMidi.set_priority(IO_CONTROLLER_THREAD_PRIORITY_MIDI);
     /* Start the UI and event threads */
     Controller::m_threadInput.start(callback(&Controller::inputThread));
-    Controller::m_threadMidi.start(callback(&Controller::midiThread));
 }
 
 io::inputstate_t io::Controller::get() {
@@ -78,16 +79,48 @@ void io::Controller::updateButtons() {
     /* TODO read shift register */
 }
 
+void io::Controller::setMidiMode(midimode_t mode) {
+    /* Check if the mode would be changed */
+    if (Controller::m_midimode == mode) { return ;}
+    /* Set the mode */
+    Controller::m_midimode = mode;
+    /* Check it */
+    switch (Controller::m_midimode) {
+        /* Midi IN mode */
+        case midimode_t::MIDI_IN: {
+            /* Start thread */
+            Controller::m_threadMidi.start(callback(&Controller::midiThread));
+            /* Hook the interrupt */
+            Controller::m_midi->attach(callback(&Controller::isrMidi, &Controller::m_midi));
+            break;
+        }
+        /* Midi OUT mode */
+        case midimode_t::MIDI_OUT: {
+            /* Stop interrupt */
+            Controller::m_midi->attach(0);
+            /* Stop thread */
+            Controller::m_threadMidi.terminate();
+            /* Empty the mail pool */
+            while (!Controller::m_midiMail.empty()) {
+                /* Get */
+                auto mail = Controller::m_midiMail.get(0);
+                /* If valid, */
+                if (mail.status != osEventMail) { continue; }
+                /* Free the memory */
+                Controller::m_midiMail.free((uint8_t*)mail.value.p);
+            }
+            break;
+        }
+        /* Undefined ?? */
+        default: break;
+    }
+}
+
 void io::Controller::midiThread() {
     /* Some data */
     uint8_t payload[2] = {0};
     osEvent mail;
     midimsg_t midimessage;
-
-    /* The peripheral */ 
-    RawSerial midi(NC, NC, MIDI_BAUD_RATE);
-    /* Hook the interrupts */
-    midi.attach(callback(&Controller::isrMidi, &midi));
 
     /* Thread loop */
     while (1) {
