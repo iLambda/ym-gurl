@@ -5,5 +5,6 @@ namespace img {
     #include "fixtures/battery.xbm"
     #include "fixtures/charging.xbm"
     #include "fixtures/env.xbm"
+    #include "fixtures/headphones.xbm"
 }
 #endif
