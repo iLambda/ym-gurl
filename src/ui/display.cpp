@@ -1,3 +1,4 @@
+#include "../img/bitmaps.h"
 #include "display.h"
 #include "utils/utils.h"
 
@@ -10,10 +11,6 @@ ui::screen_t ui::Display::m_screens[UI_DISPLAY_MAX_SCREENS] = {0};
 int8_t ui::Display::m_currentScreen = -1;
 
 void ui::Display::run(){ 
-    /* Initialize screens */
-    memset(Display::m_screens, 0, utils::size(Display::m_screens) * sizeof(screen_t));
-    Display::m_currentScreen = -1;
-
     /* Initialize u8g2 */
     UI_DISPLAY_U8G2_INIT(
         /* The display data */
@@ -30,12 +27,12 @@ void ui::Display::run(){
     /* Wake up the display */
     u8g2_SetPowerSave(&Display::m_display, 0);
 
-    /* Set priorities */
-    Display::m_threadUi.set_priority(UI_DISPLAY_THREAD_PRIORITY_UI);
-    Display::m_threadEvent.set_priority(UI_DISPLAY_THREAD_PRIORITY_EVENT);
     /* Start the UI and event threads */
     Display::m_threadUi.start(callback(&Display::uiThread));
     Display::m_threadEvent.start(callback(&Display::eventThread));
+    /* Set priorities */
+    Display::m_threadUi.set_priority(UI_DISPLAY_THREAD_PRIORITY_UI);
+    Display::m_threadEvent.set_priority(UI_DISPLAY_THREAD_PRIORITY_EVENT);
 }
 
 bool ui::Display::add(uint8_t id, const screen_t &screen) {
@@ -86,7 +83,21 @@ void ui::Display::dirty() {
 }
 
 void ui::Display::drawFrame() {
-    /* TODO */
+    /* Draw top bar */
+    u8g2_DrawBox(&Display::m_display, 0, 0, screenWidth(), 9);
+    /* Draw battery symbol */
+    u8g2_uint_t xposBattery = screenWidth() - IMG_BATTERY_WIDTH - 2;
+    u8g2_DrawXBM(&Display::m_display, xposBattery, 2, IMG_BATTERY);
+    /* Fill it */
+    u8g2_SetDrawColor(&Display::m_display, 0);
+    // u8g2_DrawBox(&Display::m_display, xposBattery + 1, 3, 2, 2);
+    /* Draw battery percentage */
+    u8g2_SetFont(&Display::m_display, u8g2_font_u8glib_4_hr);
+    // u8g2_DrawStr("95%");
+
+
+    /* Restrict */
+    // u8g2_SetClipWindow(&Display::m_display, 0, 9, screenWidth(), screenHeight() - 9);
 }
 
 void ui::Display::repaint() {
@@ -98,20 +109,13 @@ void ui::Display::repaint() {
     if (!screen.render) { return; }
     /* Clear */
     u8g2_ClearBuffer(&Display::m_display);
+    /* Draw */
+    screen.render(screen.state, &Display::m_display);
     /* Check if need to draw frame */
     if (screen.framed) {
         /* Draw */
         Display::drawFrame();
-        /* Restrict frame draw */
-        /* TODO */
-        // u8g2_SetClipWindow(&Display::m_display, );
     }
-    else {
-        /* Reset frame draw restriction */
-        u8g2_SetMaxClipWindow(&Display::m_display);
-    }
-    /* Draw */
-    screen.render(screen.state, &Display::m_display);
     /* Send buffer */
     u8g2_SendBuffer(&Display::m_display);
 }

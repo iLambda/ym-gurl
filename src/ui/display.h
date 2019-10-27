@@ -3,7 +3,7 @@
 
 #define UI_DISPLAY_U8G2_INIT  u8g2_Setup_st7920_s_128x64_f /* u8g2_Setup_uc1611_ea_dogxl240_f */
 #define UI_DISPLAY_U8G2_COMM  u8x8_byte_4wire_sw_spi /* u8x8_byte_hw_spi_mbed */
-#define UI_DISPLAY_U8G2_ROT   U8G2_R0
+#define UI_DISPLAY_U8G2_ROT   U8G2_R2
 
 #define UI_DISPLAY_MAX_SCREENS      16
 #define UI_DISPLAY_REFRESH_UI_RATE  10
@@ -65,6 +65,11 @@ namespace ui {
             static bool go(uint8_t id);
             /* The current screen id */
             static int8_t current();
+
+            /* The screen width */
+            __STATIC_FORCEINLINE u8g2_uint_t screenWidth() { return Display::m_display.width; }
+            /* The screen height */
+            __STATIC_FORCEINLINE u8g2_uint_t screenHeight() { return Display::m_display.height; }
 
         private:
             /* Repaint */

@@ -24,7 +24,7 @@ namespace ui {
 
             public:
                 /* Return a screen_t representing this screen */
-                screen_t get() { return { (void*)this, false, &render, &update }; }
+                screen_t get() { return { (void*)this, true, &render, &update }; }
                 /* Return the ID of this screen */
                 static uint8_t getID() { return SCREEN_ID; }
 
