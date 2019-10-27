@@ -84,16 +84,44 @@ void ui::Display::dirty() {
 
 void ui::Display::drawFrame() {
     /* Draw top bar */
+    u8g2_SetDrawColor(&Display::m_display, 1);
     u8g2_DrawBox(&Display::m_display, 0, 0, screenWidth(), 9);
     /* Draw battery symbol */
     u8g2_uint_t xposBattery = screenWidth() - IMG_BATTERY_WIDTH - 2;
+    u8g2_SetDrawColor(&Display::m_display, 1);
     u8g2_DrawXBM(&Display::m_display, xposBattery, 2, IMG_BATTERY);
     /* Fill it */
+    u8g2_uint_t batfillwidth = 4;
     u8g2_SetDrawColor(&Display::m_display, 0);
-    // u8g2_DrawBox(&Display::m_display, xposBattery + 1, 3, 2, 2);
+    u8g2_DrawBox(&Display::m_display, xposBattery + 1, 3, batfillwidth, 3);
     /* Draw battery percentage */
-    u8g2_SetFont(&Display::m_display, u8g2_font_u8glib_4_hr);
-    // u8g2_DrawStr("95%");
+    const char* batperc = "95%";
+    u8g2_SetFont(&Display::m_display, u8g2_font_tom_thumb_4x6_mr);
+    u8g2_uint_t xposText = xposBattery - u8g2_GetStrWidth(&Display::m_display, batperc) - 1;
+    u8g2_SetFontPosTop(&Display::m_display);
+    u8g2_SetDrawColor(&Display::m_display, 0);
+    u8g2_DrawStr(&Display::m_display, xposText, 1, batperc);
+
+    /* Current position of widget icon */
+    u8g2_uint_t xposAfter = xposText - 2;
+    u8g2_uint_t iconMargin = 3;
+
+    /* If charging */
+    if (true) {
+        /* Remove width */
+        xposAfter -= (IMG_CHARGING_WIDTH + iconMargin);
+        /* Draw charging */
+        u8g2_SetDrawColor(&Display::m_display, 1);
+        u8g2_DrawXBM(&Display::m_display, xposAfter, 0, IMG_CHARGING);
+    }
+    /* If headphones */
+    if (true) {
+        /* Remove width */
+        xposAfter -= (IMG_HEADPHONES_WIDTH + iconMargin);
+        /* Draw charging */
+        u8g2_SetDrawColor(&Display::m_display, 1);
+        u8g2_DrawXBM(&Display::m_display, xposAfter, 1, IMG_HEADPHONES);
+    }
 
 
     /* Restrict */
