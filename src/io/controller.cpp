@@ -2,6 +2,7 @@
 #include "midi/midi.h"
 
 Thread io::Controller::m_threadInput;
+Thread io::Controller::m_threadMidi;
 io::inputstate_t io::Controller::m_state = {0};
 utils::Event<io::batterystate_t> io::Controller::m_eventBatteryChange;
 RawSerial* io::Controller::m_midi = new RawSerial(NC, NC, MIDI_BAUD_RATE);
@@ -91,7 +92,7 @@ void io::Controller::setMidiMode(midimode_t mode) {
             /* Start thread */
             Controller::m_threadMidi.start(callback(&Controller::midiThread));
             /* Hook the interrupt */
-            Controller::m_midi->attach(callback(&Controller::isrMidi, &Controller::m_midi));
+            Controller::m_midi->attach(callback(&Controller::isrMidi, Controller::m_midi));
             break;
         }
         /* Midi OUT mode */
@@ -134,7 +135,7 @@ void io::Controller::midiThread() {
         midimessage = {0};
         midimessage.status.value = status;
         /* Get as many payload bytes as needed */
-        for (size_t i = 0; i != payloadsize ; i++) {
+        for (int8_t i = 0; i < payloadsize ; i++) {
             /* Read mail */
             mail = Controller::m_midiMail.get(IO_CONTROLLER_MIDI_MSG_TIMEOUT);
             /* If nothing receive, forget this whole command 
@@ -147,6 +148,8 @@ void io::Controller::midiThread() {
             i++;
         }
         /* Yeet that message */
+        midimessage.data.byte1 = payload[0];
+        midimessage.data.byte2 = payload[1];
         Controller::m_eventMidiReceive.fire(midimessage);
         /* Loop break label */
         payload_fail:;

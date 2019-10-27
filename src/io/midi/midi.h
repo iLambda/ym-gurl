@@ -47,7 +47,7 @@ namespace io {
             /* The command and the channel */
             struct {
                 uint8_t realtime : 4;
-                uint8_t command : 4;
+                uint8_t order : 4;
             };
 
         } status;
@@ -64,7 +64,7 @@ namespace io {
     };
 
     /* Return midi message length */
-    int8_t midi_message_len(uint8_t status) {
+    inline int8_t midi_message_len(uint8_t status) {
         /* Check */
         switch(status & 0xF0){
             /* 3 byte long messages */
@@ -112,12 +112,12 @@ namespace io {
         }
     }
     /* Return midi message length */
-    int8_t midi_message_len(midimsg_t msg) {
+    inline int8_t midi_message_len(midimsg_t msg) {
         return midi_message_len(msg.status.value);
     }
     /* Return midi message length */
-    midimsgtype_t midi_message_type(midimsg_t msg) {
-        return msg.status.value & 0xF0 != 0xF0 
+    inline midimsgtype_t midi_message_type(midimsg_t msg) {
+        return (msg.status.value & 0xF0) != 0xF0 
                 /* Usual command */
                 ? (midimsgtype_t)(msg.status.value & 0xF0)
                 /* Realtime command */
