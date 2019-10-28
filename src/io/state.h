@@ -29,6 +29,8 @@ namespace io {
     struct batterystate_t {
         /* The percentage */
         uint8_t percentage;
+        /* Is the battery charging ? */
+        bool charging;
     };
 
     /* The input state */    
