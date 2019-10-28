@@ -12,8 +12,6 @@ int main() {
   /* Start initialization */
   dbg::setLEDs(0x01);
 
-  /* Initialize controller */
-
   /* Initialize display */
   ui::Display::add(bootScreen.getID(), bootScreen.get());
   ui::Display::go(bootScreen.getID());
