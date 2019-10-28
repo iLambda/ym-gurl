@@ -26,7 +26,7 @@ namespace utils {
     template <class T> 
     dllist_t<T>* dllist_make(T data[], size_t datalen, dllist_t<T> nodes[]) {
         /* If empty, return null */
-        if (arraylen == 0) { return nullptr; }
+        if (datalen == 0) { return nullptr; }
         /* Temporary data */
         dllist_t<T>* list = nullptr;
         /* Iterate through data */
@@ -44,7 +44,7 @@ namespace utils {
     template <class T, size_t n> 
     dllist_t<T>* dllist_make(T data[], size_t datalen, MemoryPool<dllist_t<T>, n> &pool) {
         /* If empty, return null */
-        if (arraylen == 0) { return nullptr; }
+        if (datalen == 0) { return nullptr; }
         /* Check if pool can at least handle them all */
         if (datalen > n) { return nullptr; }
         /* Temporary list */
@@ -90,7 +90,7 @@ namespace utils {
     /* Remove an element from the doubly linked list and return the one before */
     template <class T> dllist_t<T>* dllist_remove(dllist_t<T>* node) {
         /* Sanity check */
-        if (list == nullptr) { return nullptr; }
+        if (node == nullptr) { return nullptr; }
         /* Stitch list */
         if (node->prev) { node->prev->next = node->next; }
         if (node->next) { node->next->prev = node->prev; }
@@ -115,7 +115,7 @@ namespace utils {
             /* Stitch */
             toinsert->next = node->next;
             toinsert->prev = node;
-            if (node->next) { node->next->prev = toinsert }
+            if (node->next) { node->next->prev = toinsert; }
             node->next = toinsert;
         }
         /* Return item  */
