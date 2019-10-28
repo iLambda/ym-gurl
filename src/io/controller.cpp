@@ -5,15 +5,15 @@ Thread io::Controller::m_threadInput;
 Thread io::Controller::m_threadMidi;
 io::inputstate_t io::Controller::m_state = {0};
 utils::Event<io::batterystate_t> io::Controller::m_eventBatteryChange;
-RawSerial* io::Controller::m_midi = new RawSerial(NC, NC, MIDI_BAUD_RATE);
+RawSerial* io::Controller::m_midi = nullptr;
 io::midimode_t io::Controller::m_midimode = io::midimode_t::MIDI_OUT;
 
 void io::Controller::run() {
-    /* Set priority */
-    Controller::m_threadInput.set_priority(IO_CONTROLLER_THREAD_PRIORITY_INPUT);
-    Controller::m_threadMidi.set_priority(IO_CONTROLLER_THREAD_PRIORITY_MIDI);
+    /* Make MIDI */
+    Controller::m_midi = new RawSerial(D1, D0, MIDI_BAUD_RATE);
     /* Start the UI and event threads */
     Controller::m_threadInput.start(callback(&Controller::inputThread));
+    Controller::m_threadInput.set_priority(IO_CONTROLLER_THREAD_PRIORITY_INPUT);
 }
 
 io::inputstate_t io::Controller::get() {
@@ -91,6 +91,7 @@ void io::Controller::setMidiMode(midimode_t mode) {
         case midimode_t::MIDI_IN: {
             /* Start thread */
             Controller::m_threadMidi.start(callback(&Controller::midiThread));
+            Controller::m_threadMidi.set_priority(IO_CONTROLLER_THREAD_PRIORITY_MIDI);
             /* Hook the interrupt */
             Controller::m_midi->attach(callback(&Controller::isrMidi, Controller::m_midi));
             break;
