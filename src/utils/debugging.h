@@ -6,7 +6,7 @@
 
 namespace dbg {
     
-    extern mbed::Serial* serial;
+    extern mbed::RawSerial* serial;
     extern mbed::BusOut* leds;
 
     void printf(const char* format, ...);
