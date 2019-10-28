@@ -1,0 +1,7 @@
+{
+    "target_overrides": {
+      "*": {
+        "platform.error-filename-capture-enabled": true
+      }
+    }
+  }
