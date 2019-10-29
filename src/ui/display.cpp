@@ -287,11 +287,11 @@ uint8_t u8x8_gpio_and_delay_mbed(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, voi
             break;
 
         case U8X8_MSG_DELAY_10MICRO: // delay arg_int * 10 micro seconds
-            wait_ms(10 * arg_int);
+            wait_us(10 * arg_int);
             break;
 
         case U8X8_MSG_DELAY_MILLI: // delay arg_int * 1 milli second
-            wait_ms(arg_int);
+            ThisThread::sleep_for(arg_int);
             break;
 
         case U8X8_MSG_DELAY_I2C: // arg_int is the I2C speed in 100KHz, e.g. 4 = 400 KHz
